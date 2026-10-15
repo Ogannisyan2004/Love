@@ -1,0 +1,519 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Письмо для тебя</title>
+
+<style>
+:root {
+  --bg: #fff0f4;
+  --ink: #693b50;
+  --muted: #a56f86;
+  --paper: #fffaf2;
+  --rose: #bd6f83;
+  --shadow: rgba(74, 42, 54, .22);
+  --ease-out: cubic-bezier(.22, .8, .25, 1);
+}
+
+* { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+.app {
+  position: relative;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding:
+    max(28px, env(safe-area-inset-top))
+    max(18px, env(safe-area-inset-right))
+    max(28px, env(safe-area-inset-bottom))
+    max(18px, env(safe-area-inset-left));
+  overflow: hidden;
+  isolation: isolate;
+  background: radial-gradient(ellipse at top, #fffafd 0%, #ffe9f0 55%, #fbd5e3 100%);
+}
+
+/* ---------- сердечки ---------- */
+.hearts {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: -1;
+}
+
+.heart {
+  position: absolute;
+  bottom: -50px;
+  left: var(--left);
+  color: #e89ab6;
+  font-size: var(--size);
+  opacity: 0;
+  animation: float-heart var(--duration) linear infinite;
+  animation-delay: var(--delay);
+  will-change: transform, opacity;
+}
+
+@keyframes float-heart {
+  0%   { transform: translateY(0) rotate(0) scale(.75); opacity: 0; }
+  15%  { opacity: .65; }
+  80%  { opacity: .45; }
+  100% { transform: translate(var(--drift), -115vh) rotate(35deg) scale(1.15); opacity: 0; }
+}
+
+/* ---------- сцена ---------- */
+.scene {
+  width: min(100%, 620px);
+  text-align: center;
+}
+
+.eyebrow {
+  margin: 0 0 12px;
+  color: var(--muted);
+  font: 600 11px/1.4 system-ui, sans-serif;
+  letter-spacing: .25em;
+  text-transform: uppercase;
+}
+
+h1 {
+  margin: 0;
+  font-size: clamp(29px, 5vw, 43px);
+  font-weight: 400;
+}
+
+.hint {
+  min-height: 24px;
+  margin: 12px 0 28px;
+  color: var(--muted);
+  font: 14px/1.5 system-ui, sans-serif;
+}
+
+.stage {
+  /* всё считается от ширины экрана: на телефоне конверт сам уменьшается */
+  --ew: min(calc(100vw - 48px), 390px);
+  --eh: calc(var(--ew) * .6026);
+  position: relative;
+  width: 100%;
+  max-width: 430px;
+  height: calc(var(--eh) * 1.62 + 20px);
+  margin: 0 auto;
+}
+
+/* ---------- конверт ---------- */
+.envelope {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  width: var(--ew);
+  height: var(--eh);
+  transform: translateX(-50%);
+  perspective: 900px;            /* перспектива для клапана */
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  transition: opacity .8s ease, transform .9s var(--ease-out);
+}
+
+.envelope:focus-visible {
+  outline: 3px solid var(--rose);
+  outline-offset: 8px;
+}
+
+/* тень вместо filter: drop-shadow — фильтр перерисовывался каждый кадр и тормозил */
+.env-back {
+  position: absolute;
+  inset: 0;
+  background: #d9a5ae;
+  border-radius: 5px;
+  box-shadow: 0 22px 28px -10px var(--shadow);
+}
+
+.letter {
+  position: absolute;
+  z-index: 2;
+  left: 5%;
+  bottom: 7px;
+  width: 90%;
+  height: calc(100% - 32px);
+  background: var(--paper);
+  color: #60444b;
+  box-shadow: 0 4px 14px rgba(70, 40, 45, .12);
+  transform: translateY(0);
+  will-change: transform;
+  transition: transform .9s var(--ease-out) .5s;   /* стартует, когда клапан уже приоткрылся */
+}
+
+.letter::before {
+  content: "";
+  position: absolute;
+  inset: 9px;
+  border: 1px solid #ead6d2;
+  pointer-events: none;
+}
+
+.letter-face {
+  position: relative;
+  padding: calc(var(--ew) * .067) calc(var(--ew) * .062);
+}
+
+.letter-mark {
+  font-size: clamp(16px, calc(var(--ew) * .054), 21px);
+  color: var(--rose);
+}
+
+.letter-preview {
+  margin-top: 10px;
+  font-size: clamp(14px, calc(var(--ew) * .046), 18px);
+  line-height: 1.3;
+  font-style: italic;
+}
+
+.env-front {
+  position: absolute;
+  z-index: 4;
+  inset: 0;
+  background: #e8b9c0;
+  clip-path: polygon(0 0, 50% 55%, 100% 0, 100% 100%, 0 100%);
+  border-radius: 4px;
+}
+
+.env-flap {
+  position: absolute;
+  z-index: 5;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 58%;
+  background: #cf8d9c;
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+  transform-origin: top center;
+  will-change: transform;
+  transition:
+    transform .8s cubic-bezier(.45, .05, .3, 1),
+    background-color .8s ease,
+    z-index 0s linear .4s;      /* z-index меняется ровно в момент, когда клапан «на ребре» */
+}
+
+.seal {
+  position: absolute;
+  z-index: 6;
+  left: 50%;
+  top: 57%;
+  width: calc(var(--ew) * .123);
+  height: calc(var(--ew) * .123);
+  display: grid;
+  place-items: center;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: #a6536b;
+  color: #fff1ef;
+  font-size: calc(var(--ew) * .056);
+  transition: opacity .3s ease, transform .4s ease;
+}
+
+/* ---------- открытие ---------- */
+.open .env-flap {
+  transform: rotateX(180deg);
+  background-color: #e3a9b5;
+  z-index: 1;
+}
+
+.open .seal {
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(.5);
+}
+
+.open .letter {
+  transform: translateY(-68%);
+}
+
+/* текст и рамка плавно гаснут, пока лист выезжает */
+.letter-face { transition: opacity .35s ease 1s; }
+.open .letter-face { opacity: 0; }
+.open .letter::before { opacity: 0; transition: opacity .35s ease 1s; }
+
+.envelope.fading {
+  opacity: 0;
+  transform: translate(-50%, 30px) scale(.96);
+  pointer-events: none;
+}
+
+/* ---------- большое письмо (отдельный слой) ---------- */
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding:
+    max(16px, env(safe-area-inset-top))
+    max(16px, env(safe-area-inset-right))
+    max(16px, env(safe-area-inset-bottom))
+    max(16px, env(safe-area-inset-left));
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.overlay.on {
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.paper {
+  position: relative;
+  isolation: isolate;
+  width: min(100%, 440px);
+  height: min(78vh, 520px);
+  height: min(78dvh, 520px);
+  max-height: 100%;
+  background: var(--paper);
+  color: #60444b;
+  text-align: center;
+  box-shadow: 0 4px 14px rgba(70, 40, 45, .12);
+  transform-origin: center;
+  will-change: transform;
+  transition: transform 1s var(--ease-out);
+  outline: none;
+}
+
+.paper::before {
+  content: "";
+  position: absolute;
+  inset: 12px;
+  border: 1px solid #ead6d2;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .5s ease;
+}
+
+/* большая тень — отдельным слоем, чтобы анимировалась только прозрачность */
+.paper::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  box-shadow: 0 24px 80px rgba(115, 52, 79, .22);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .8s ease .2s;
+}
+
+.paper.expanded::before { opacity: 1; transition-delay: .7s; }
+.paper.expanded::after  { opacity: 1; }
+
+.paper-scroll {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  padding: clamp(28px, 8vw, 42px) clamp(22px, 7vw, 34px);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+}
+
+.message {
+  margin: auto 0;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity .8s ease, transform .8s ease;
+}
+
+.paper.expanded .message {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: .6s;
+}
+
+.message h2 {
+  margin: 0 0 15px;
+  font-size: 27px;
+  font-weight: 400;
+}
+
+.message p {
+  margin: 0 auto 12px;
+  max-width: 330px;
+  font-size: 16px;
+  line-height: 1.65;
+}
+
+.signature {
+  margin-top: 18px !important;
+  color: #a45b70;
+  font-style: italic;
+}
+
+.small-note {
+  margin-top: 26px;
+  color: var(--muted);
+  font: 12px system-ui, sans-serif;
+}
+
+@media (max-width: 420px) {
+  .hint { margin-bottom: 20px; }
+  .message h2 { font-size: 24px; }
+  .message p { font-size: 15px; line-height: 1.6; }
+  .small-note { margin-top: 18px; }
+}
+
+@media (max-height: 520px) and (orientation: landscape) {
+  .eyebrow { display: none; }
+  .hint { margin: 8px 0 14px; }
+  .small-note { display: none; }
+  .message h2 { font-size: 22px; margin-bottom: 10px; }
+  .message p { font-size: 14px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    transition-duration: .01ms !important;
+    transition-delay: 0s !important;
+  }
+}
+</style>
+</head>
+
+<body>
+<main class="app">
+  <div class="hearts" aria-hidden="true">
+    <span class="heart" style="--left:5%;--size:20px;--duration:11s;--delay:-2s;--drift:45px">♥</span>
+    <span class="heart" style="--left:14%;--size:30px;--duration:14s;--delay:-8s;--drift:-35px">♡</span>
+    <span class="heart" style="--left:25%;--size:17px;--duration:10s;--delay:-5s;--drift:28px">♥</span>
+    <span class="heart" style="--left:38%;--size:25px;--duration:13s;--delay:-10s;--drift:-25px">♡</span>
+    <span class="heart" style="--left:52%;--size:19px;--duration:12s;--delay:-4s;--drift:40px">♥</span>
+    <span class="heart" style="--left:64%;--size:28px;--duration:15s;--delay:-7s;--drift:-40px">♡</span>
+    <span class="heart" style="--left:76%;--size:18px;--duration:10s;--delay:-1s;--drift:30px">♥</span>
+    <span class="heart" style="--left:88%;--size:26px;--duration:13s;--delay:-6s;--drift:-30px">♡</span>
+    <span class="heart" style="--left:96%;--size:16px;--duration:12s;--delay:-9s;--drift:20px">♥</span>
+  </div>
+
+  <section class="scene" aria-label="Интерактивная открытка">
+    <p class="eyebrow">маленькое послание</p>
+    <h1>Письмо для тебя</h1>
+    <p class="hint" id="hint">Нажми на конверт, чтобы открыть его</p>
+
+    <div class="stage">
+      <div class="envelope" id="envelope"
+           role="button" tabindex="0"
+           aria-label="Открыть конверт"
+           aria-expanded="false">
+        <div class="env-back"></div>
+
+        <div class="letter" id="letter">
+          <div class="letter-face">
+            <div class="letter-mark">✦</div>
+            <div class="letter-preview">Для тебя — от всего сердца</div>
+          </div>
+        </div>
+
+        <div class="env-front"></div>
+        <div class="env-flap"></div>
+        <div class="seal">♥</div>
+      </div>
+    </div>
+
+    <p class="small-note">Небольшая открытка, сделанная с теплом</p>
+  </section>
+</main>
+
+<!-- Большое письмо лежит в своём слое с самого начала, ничего не переносится по DOM -->
+<div class="overlay" id="overlay" aria-hidden="true">
+  <article class="paper" id="paper" tabindex="-1" aria-label="Письмо">
+    <div class="paper-scroll">
+      <div class="message">
+        <h2>Любовь моя ❤️</h2>
+        <p>Просто захотелось напомнить тебе, что я тебя очень сильно люблю❤️</p>
+        <p>Ты делаешь этот мир намного светлее</p>
+        <p>Ты у меня самая лучшая, я просто от тебя безума</p>
+        <p>Пусть это письмо будет напротяжении дня напоминать как я тебя сильно люблю</p>
+        <p>Ведь ты у меня самая любимая жопка!</p>
+        <p class="signature">P.S. от любиой письки</p>
+      </div>
+    </div>
+  </article>
+</div>
+
+<script>
+const envelope = document.getElementById("envelope");
+const letter   = document.getElementById("letter");
+const overlay  = document.getElementById("overlay");
+const paper    = document.getElementById("paper");
+const hint     = document.getElementById("hint");
+
+const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const wait = ms => new Promise(r => setTimeout(r, reduceMotion ? 0 : ms));
+const nextFrame = () => new Promise(r => requestAnimationFrame(() => r()));
+
+let opened = false;
+
+async function openLetter() {
+  if (opened) return;
+  opened = true;
+
+  // 1. Открываем клапан и выдвигаем лист (всё на transform — без пересчёта layout)
+  envelope.classList.add("open");
+  envelope.setAttribute("aria-expanded", "true");
+  envelope.setAttribute("aria-label", "Письмо открывается");
+  envelope.removeAttribute("tabindex");
+  hint.textContent = "Письмо достаётся из конверта…";
+
+  await wait(1450);   // .5s задержка + .9s выезд листа
+
+  // 2. FLIP: большое письмо «вырастает» ровно из положения маленького листа
+  const from = letter.getBoundingClientRect();
+
+  overlay.classList.add("on");
+  paper.style.transition = "none";
+  paper.style.transform = "none";
+
+  const to = paper.getBoundingClientRect();
+  const dx = (from.left + from.width / 2)  - (to.left + to.width / 2);
+  const dy = (from.top  + from.height / 2) - (to.top  + to.height / 2);
+  const sx = from.width  / to.width;
+  const sy = from.height / to.height;
+
+  paper.style.transform = `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})`;
+  paper.getBoundingClientRect();            // фиксируем стартовое состояние
+
+  letter.style.visibility = "hidden";       // подмена в том же кадре — незаметна
+  hint.textContent = "Конверт исчезает…";
+
+  await nextFrame();
+
+  paper.style.transition = "";              // включаем transition из CSS
+  paper.style.transform = "none";           // едем в центр (только transform)
+  paper.classList.add("expanded");
+  envelope.classList.add("fading");
+
+  await wait(1000);
+
+  overlay.setAttribute("aria-hidden", "false");
+  envelope.setAttribute("aria-label", "Письмо открыто");
+  hint.textContent = "Для тебя — несколько тёплых слов";
+  document.documentElement.style.overflow = "hidden";   // фон под письмом не скроллится
+  paper.focus({ preventScroll: true });
+}
+
+envelope.addEventListener("click", openLetter);
+
+envelope.addEventListener("keydown", event => {
+  if (event.key === "Enter" || event.key === " ") {
+    event.preventDefault();
+    openLetter();
+  }
+});
+</script>
+</body>
+</html>
